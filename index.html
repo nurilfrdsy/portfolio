@@ -34,7 +34,7 @@
             position: relative;
         }
 
-        /* === NAVBAR (functional overlay) === */
+        /* === NAVBAR (sticky glass overlay) === */
         .navbar-overlay {
             position: fixed;
             top: 20px;
@@ -42,16 +42,24 @@
             transform: translateX(-50%);
             z-index: 1000;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            padding: 0 10px;
-            background: rgba(23, 23, 23, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(0,0,0,0.5);
-            border-radius: 50px;
+            gap: 4px;
+            padding: 6px 10px;
+            background: rgba(23, 23, 23, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 60px;
             max-width: 1298px;
-            width: calc(100% - 140px);
+            width: auto;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .navbar-overlay.scrolled {
+            top: 12px;
+            background: rgba(23, 23, 23, 0.95);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
         }
         .nav-item {
             font-family: 'Afacad', sans-serif;
@@ -59,16 +67,25 @@
             font-weight: 400;
             color: var(--white);
             text-decoration: none;
-            padding: 20px 40px;
+            padding: 16px 36px;
             border-radius: 60px;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             white-space: nowrap;
+            position: relative;
         }
-        .nav-item:hover { background: rgba(255,255,255,0.1); }
+        .nav-item:hover { 
+            background: rgba(255,255,255,0.1); 
+            color: var(--white);
+        }
         .nav-item.active {
             background: var(--green);
             font-weight: 700;
             color: var(--dark-bg);
+            box-shadow: 0 2px 12px rgba(52, 199, 89, 0.35);
+        }
+        .nav-item.active:hover {
+            background: var(--green);
+            box-shadow: 0 4px 20px rgba(52, 199, 89, 0.5);
         }
 
         /* === SECTION IMAGE BLOCKS === */
@@ -174,24 +191,27 @@
         /* === RESPONSIVE === */
         @media (max-width: 1200px) {
             .navbar-overlay {
-                width: calc(100% - 80px);
+                width: auto;
+                max-width: calc(100% - 80px);
             }
             .nav-item {
                 font-size: 16px;
-                padding: 15px 25px;
+                padding: 12px 22px;
             }
         }
         @media (max-width: 768px) {
             .navbar-overlay {
-                width: calc(100% - 40px);
+                width: auto;
+                max-width: calc(100% - 32px);
                 flex-wrap: wrap;
                 justify-content: center;
-                gap: 4px;
-                padding: 8px;
+                gap: 2px;
+                padding: 6px;
+                top: 10px;
             }
             .nav-item {
                 font-size: 13px;
-                padding: 10px 16px;
+                padding: 8px 14px;
             }
             .marquee-item {
                 font-size: 28px;
@@ -303,55 +323,74 @@
 
         document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-        // === Active Nav on Scroll ===
+        // === Active Nav Highlight on Scroll ===
         const navItems = document.querySelectorAll('.nav-item');
+        const navbar = document.getElementById('navbar');
+
+        // Section IDs in the order they appear on the page (top to bottom)
         const sectionIds = ['home', 'services', 'mountains', 'about', 'journey', 'contact'];
 
-        window.addEventListener('scroll', () => {
+        function updateActiveNav() {
+            const scrollPos = window.scrollY + 200;
             let current = 'home';
-            sectionIds.forEach(id => {
+
+            for (const id of sectionIds) {
                 const section = document.getElementById(id);
-                if (section) {
-                    const top = section.offsetTop - 250;
-                    if (scrollY >= top) current = id;
+                if (section && section.offsetTop <= scrollPos) {
+                    current = id;
                 }
-            });
+            }
+
             navItems.forEach(link => {
                 link.classList.remove('active');
                 if (link.getAttribute('href') === '#' + current) {
                     link.classList.add('active');
                 }
             });
+        }
+
+        // === Navbar scrolled state (subtle visual change) ===
+        function updateNavbarState() {
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        }
+
+        // Combine scroll listeners for performance
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    updateActiveNav();
+                    updateNavbarState();
+                    ticking = false;
+                });
+                ticking = true;
+            }
         });
 
-        // === Smooth Scroll Nav Click ===
+        // === Smooth Scroll on Nav Click ===
         navItems.forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
                 const targetId = this.getAttribute('href').substring(1);
                 const target = document.getElementById(targetId);
                 if (target) {
-                    const offset = 80;
+                    const offset = 100;
                     const top = target.offsetTop - offset;
                     window.scrollTo({ top, behavior: 'smooth' });
                 }
+
+                // Immediately set active state on click
+                navItems.forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
             });
         });
 
-        // === Navbar Hide/Show on Scroll ===
-        let lastScroll = 0;
-        const navbar = document.getElementById('navbar');
-        window.addEventListener('scroll', () => {
-            const currentScroll = window.scrollY;
-            if (currentScroll > lastScroll && currentScroll > 300) {
-                navbar.style.transform = 'translateX(-50%) translateY(-120%)';
-                navbar.style.transition = 'transform 0.3s ease';
-            } else {
-                navbar.style.transform = 'translateX(-50%) translateY(0)';
-                navbar.style.transition = 'transform 0.3s ease';
-            }
-            lastScroll = currentScroll;
-        });
+        // Run once on page load
+        updateActiveNav();
     </script>
 </body>
 </html>
